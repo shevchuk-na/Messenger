@@ -80,6 +80,7 @@ public class MessengerModel {
         return localConnection;
     }
 
-
-
+    public void shutdown() {
+        currentModel.shutdown();
+    }
 }

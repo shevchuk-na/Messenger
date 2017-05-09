@@ -58,6 +58,10 @@ public class MainController implements Controller, Initializable {
     @FXML
     private ImageView profileImageBtn;
 
+    public MainController() {
+
+    }
+
     @FXML
     void sendBtnAction(ActionEvent event) {
         model.sendMessage(inputArea.getText(), clientsTable.getSelectionModel().getSelectedItem());
@@ -96,10 +100,6 @@ public class MainController implements Controller, Initializable {
     @FXML
     void processDragDrop(DragEvent event) {
         System.out.println("New Drag!");
-    }
-
-    public MainController() {
-
     }
 
     @Override
@@ -235,6 +235,7 @@ public class MainController implements Controller, Initializable {
     }
 
     public void restartModel() {
+        model.shutdown();
         model = new MessengerModel();
         model.initialize();
     }

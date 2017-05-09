@@ -1,6 +1,8 @@
 package model.net;
 
-import java.io.*;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.Socket;
 
@@ -10,7 +12,6 @@ public class Connection implements Serializable{
     private int port;
     private Socket socket;
     private DataOutputStream dos;
-    private ConnectionStatus status;
 
     public Connection(InetAddress ip, int port) {
         this.ip = ip;
@@ -47,14 +48,6 @@ public class Connection implements Serializable{
 
     public DataOutputStream getDos() {
         return dos;
-    }
-
-    public ConnectionStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(ConnectionStatus status) {
-        this.status = status;
     }
 
     public int getPort() {

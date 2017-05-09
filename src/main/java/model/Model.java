@@ -15,4 +15,6 @@ public interface Model {
     void processPacket(DataPacket packet, Connection sender);
 
     void checkConnection(Connection connection);
+
+    void shutdown();
 }

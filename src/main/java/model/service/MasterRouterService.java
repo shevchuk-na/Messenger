@@ -12,6 +12,7 @@ public class MasterRouterService implements Runnable {
 
     private MasterModel model;
     private LinkedList<DataPacket> packetsToSend;
+    private boolean alive = true;
 
     public MasterRouterService(MasterModel model) {
         this.model = model;
@@ -20,7 +21,7 @@ public class MasterRouterService implements Runnable {
 
     @Override
     public void run() {
-        while (true) {
+        while (alive) {
             if (packetsToSend.isEmpty()) {
                 Thread.yield();
             } else {
@@ -51,5 +52,9 @@ public class MasterRouterService implements Runnable {
 
     public synchronized void addPacketToSend(DataPacket packet) {
         packetsToSend.add(packet);
+    }
+
+    public void setAlive(boolean alive) {
+        this.alive = alive;
     }
 }

@@ -11,7 +11,8 @@ import java.net.DatagramSocket;
 public class MasterUDPService implements Runnable{
 
     private MasterModel model;
-    private boolean isReceiving = true;
+    private boolean alive = true;
+    private DatagramSocket socket;
 
     public MasterUDPService(MasterModel model) {
         this.model = model;
@@ -21,8 +22,8 @@ public class MasterUDPService implements Runnable{
     @Override
     public void run() {
         try {
-            DatagramSocket socket = new DatagramSocket(SettingsUtil.getInstance().getIncomingPort());
-            while(isReceiving){
+            socket = new DatagramSocket(SettingsUtil.getInstance().getLocalPort());
+            while (alive) {
                 byte[] buf = new byte[1024];
                 DatagramPacket packet = new DatagramPacket(buf, 0, buf.length);
                 socket.receive(packet);
@@ -42,7 +43,11 @@ public class MasterUDPService implements Runnable{
 
     }
 
-    public void setReceiving(boolean receiving) {
-        isReceiving = receiving;
+    public void setAlive(boolean alive) {
+        this.alive = alive;
+    }
+
+    public void closeSocket() {
+        socket.close();
     }
 }

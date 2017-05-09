@@ -1,6 +1,7 @@
 package model;
 
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import model.data.DataPacket;
 import model.data.Message;
@@ -12,8 +13,8 @@ import model.service.IncomingPacketService;
 import model.service.MasterRouterService;
 import model.service.MasterTCPConnectionService;
 import model.service.MasterUDPService;
-import model.utils.SettingsUtil;
 import model.utils.JsonUtil;
+import model.utils.SettingsUtil;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -27,6 +28,8 @@ public class MasterModel implements Model {
     private ObservableList<Connection> connections = FXCollections.observableArrayList();
     private Map<Connection, IncomingPacketService> masterIncomingPacketServiceMap;
     private MasterRouterService masterRouterService;
+    private MasterTCPConnectionService masterTCPConnectionService;
+    private MasterUDPService masterUDPService;
 
     MasterModel(MessengerModel model) {
         this.model = model;
@@ -35,7 +38,7 @@ public class MasterModel implements Model {
         model.getClients().add(new Client(model.getLocalConnection().getIp(), model.getLocalConnection().getPort(), SettingsUtil.getInstance().getName(), new Date()));
         getConnections().clear();
         masterIncomingPacketServiceMap = new HashMap<>();
-        MasterTCPConnectionService masterTCPConnectionService = new MasterTCPConnectionService(this);
+        masterTCPConnectionService = new MasterTCPConnectionService(this);
         Thread masterTCPConnectionThread = new Thread(masterTCPConnectionService);
         masterTCPConnectionThread.setName("Master TCP connection thread");
         masterTCPConnectionThread.setDaemon(true);
@@ -45,11 +48,20 @@ public class MasterModel implements Model {
         masterRouterThread.setName("Master router thread");
         masterRouterThread.setDaemon(true);
         masterRouterThread.start();
-        MasterUDPService masterUDPService = new MasterUDPService(this);
+        masterUDPService = new MasterUDPService(this);
         Thread masterUDPServiceThread = new Thread(masterUDPService);
         masterUDPServiceThread.setName("Master UDP service thread");
         masterUDPServiceThread.setDaemon(true);
         masterUDPServiceThread.start();
+        connections.addListener((ListChangeListener<Connection>) c -> {
+            while (c.next()) {
+                if (c.wasAdded()) {
+                    for (Connection connection : c.getAddedSubList()) {
+                        createIncomingService(connection);
+                    }
+                }
+            }
+        });
     }
 
     @Override
@@ -167,5 +179,21 @@ public class MasterModel implements Model {
 
     public Connection getLocalConnection() {
         return model.getLocalConnection();
+    }
+
+    @Override
+    public void shutdown() {
+        for (Connection connection : connections) {
+            try {
+                connection.getSocket().close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        masterUDPService.setAlive(false);
+        masterUDPService.closeSocket();
+        masterRouterService.setAlive(false);
+        masterTCPConnectionService.setAlive(false);
+        masterTCPConnectionService.closeServerSocket();
     }
 }

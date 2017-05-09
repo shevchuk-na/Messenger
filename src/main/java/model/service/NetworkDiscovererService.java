@@ -18,12 +18,12 @@ public class NetworkDiscovererService {
 
     public NetworkDiscovererService() {
         try {
-            localConnection = new Connection(discoverHostIp(), SettingsUtil.getInstance().getIncomingPort());
-            DatagramSocket socket = new DatagramSocket(SettingsUtil.getInstance().getIncomingPort());
+            localConnection = new Connection(discoverHostIp(), SettingsUtil.getInstance().getLocalPort());
+            DatagramSocket socket = new DatagramSocket(SettingsUtil.getInstance().getLocalPort());
             String localAddress = localConnection.getIp().getHostAddress();
             InetAddress broadcastAddress = InetAddress.getByName(localAddress.substring(0, localAddress.lastIndexOf(".")) + ".255");
             DatagramPacket broadcastPacket = new DatagramPacket(ConnectionMessages.HELLO_MESSAGE.getBytes(), ConnectionMessages.HELLO_MESSAGE.length(), broadcastAddress, SettingsUtil.getInstance()
-                    .getIncomingPort());
+                    .getRemotePort());
             UDPService udpService = new UDPService(this, socket);
             Thread udpServiceThread = new Thread(udpService);
             udpServiceThread.setName("UDP service thread");

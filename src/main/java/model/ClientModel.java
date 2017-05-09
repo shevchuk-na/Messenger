@@ -7,8 +7,8 @@ import model.data.WelcomeInfo;
 import model.net.Client;
 import model.net.Connection;
 import model.service.IncomingPacketService;
-import model.utils.SettingsUtil;
 import model.utils.JsonUtil;
+import model.utils.SettingsUtil;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -21,7 +21,7 @@ public class ClientModel implements Model {
     private MessengerModel model;
     private IncomingPacketService incomingPacketService;
 
-    public ClientModel(MessengerModel model, Connection masterServer) {
+    ClientModel(MessengerModel model, Connection masterServer) {
         this.model = model;
         this.masterServer = masterServer;
         System.out.println(this.masterServer.getIp() + " is the master now");
@@ -39,7 +39,7 @@ public class ClientModel implements Model {
                 incomingPacketServiceThread.setDaemon(true);
                 incomingPacketServiceThread.start();
                 connected = true;
-                WelcomeInfo info = new WelcomeInfo(SettingsUtil.getInstance().getName(), SettingsUtil.getInstance().getIncomingPort());
+                WelcomeInfo info = new WelcomeInfo(SettingsUtil.getInstance().getName(), SettingsUtil.getInstance().getLocalPort());
                 DataPacket welcomePacket = new DataPacket(model.getLocalConnection().getIp(), masterServer.getIp(), ModuleNames.Welcome, JsonUtil.getInstance().welcomeInfoToJson(info));
                 sendPacket(welcomePacket, masterServer);
             } catch (IOException e) {
@@ -125,5 +125,15 @@ public class ClientModel implements Model {
     private void sendServiceMessage() {
         DataPacket servicePacker = new DataPacket(model.getLocalConnection().getIp(), masterServer.getIp(), ModuleNames.Update, SettingsUtil.getInstance().getName());
         sendPacket(servicePacker, masterServer);
+    }
+
+    @Override
+    public void shutdown() {
+        try {
+            incomingPacketService.setAlive(false);
+            masterServer.getSocket().close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

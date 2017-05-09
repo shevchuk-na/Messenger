@@ -5,10 +5,11 @@ import java.io.*;
 
 public class SettingsUtil {
 
+    private static final int DEFAULT_PORT = 15001;
     private static SettingsUtil settingsUtil = new SettingsUtil();
     private File configFile = new File("config/config.ini");
-    private static final int DEFAULT_PORT = 15001;
-    private int incomingPort;
+    private int localPort;
+    private int remotePort;
     private String name;
 
     private SettingsUtil() {
@@ -20,38 +21,41 @@ public class SettingsUtil {
                         settingsFolder.mkdir();
                     }
                     configFile.createNewFile();
+                    localPort = DEFAULT_PORT;
+                    remotePort = DEFAULT_PORT;
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-            }
-            BufferedReader fileReader = new BufferedReader(new InputStreamReader(new FileInputStream(configFile)));
-            String configLine;
-            while ((configLine = fileReader.readLine()) != null) {
-                if (!configLine.equals("")) {
-                    String name = configLine.trim().substring(0, configLine.lastIndexOf("="));
-                    String data = configLine.substring(configLine.lastIndexOf("=") + 1);
-                    if (!data.equals("")) {
-                        switch (name) {
-                            case "incoming_port":
-                                try {
-                                    incomingPort = Integer.parseInt(data);
-                                } catch (NumberFormatException e) {
-                                    e.printStackTrace();
-                                }
-                                break;
-                            case "name":
-                                this.name = data;
+            } else {
+                BufferedReader fileReader = new BufferedReader(new InputStreamReader(new FileInputStream(configFile)));
+                String configLine;
+                while ((configLine = fileReader.readLine()) != null) {
+                    if (!configLine.equals("")) {
+                        String name = configLine.trim().substring(0, configLine.lastIndexOf("="));
+                        String data = configLine.substring(configLine.lastIndexOf("=") + 1);
+                        if (!data.equals("")) {
+                            switch (name) {
+                                case "local_port":
+                                    try {
+                                        localPort = Integer.parseInt(data);
+                                    } catch (NumberFormatException e) {
+                                        e.printStackTrace();
+                                    }
+                                    break;
+                                case "remote_port":
+                                    try {
+                                        remotePort = Integer.parseInt(data);
+                                    } catch (NumberFormatException e) {
+                                        e.printStackTrace();
+                                    }
+                                    break;
+                                case "name":
+                                    this.name = data;
+                            }
                         }
                     }
                 }
-            }
-            fileReader.close();
-            if (incomingPort == 0) {
-                incomingPort = DEFAULT_PORT;
-                PrintWriter printWriter = new PrintWriter(new FileWriter(configFile, true));
-                printWriter.println("incoming_port=" + DEFAULT_PORT);
-                printWriter.flush();
-                printWriter.close();
+                fileReader.close();
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -64,7 +68,7 @@ public class SettingsUtil {
     }
 
     public boolean settingsLoaded() {
-        return !(incomingPort == 0);
+        return !((localPort == 0) || (remotePort == 0));
     }
 
     public boolean profileLoaded() {
@@ -75,12 +79,16 @@ public class SettingsUtil {
         return configFile.exists();
     }
 
-    public int getIncomingPort() {
-        return incomingPort;
+    public int getLocalPort() {
+        return localPort;
     }
 
     public String getName() {
         return name;
+    }
+
+    public int getRemotePort() {
+        return remotePort;
     }
 
     public SaveConstants saveProfile(String name) {
@@ -88,8 +96,9 @@ public class SettingsUtil {
         return writeConfigToFile();
     }
 
-    public SaveConstants saveSettings(int inPort) {
-        incomingPort = inPort;
+    public SaveConstants saveSettings(int localPort, int remotePort) {
+        this.localPort = localPort;
+        this.remotePort = remotePort;
         return writeConfigToFile();
     }
 
@@ -97,7 +106,8 @@ public class SettingsUtil {
         try {
             PrintWriter printWriter = new PrintWriter(configFile);
             printWriter.println("name=" + name);
-            printWriter.println("incoming_port=" + incomingPort);
+            printWriter.println("local_port=" + localPort);
+            printWriter.println("remote_port=" + remotePort);
             printWriter.flush();
             printWriter.close();
             return SaveConstants.Success;
