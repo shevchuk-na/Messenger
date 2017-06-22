@@ -179,7 +179,7 @@ public class MainController implements Controller, Initializable {
             if (db.hasFiles()) {
                 success = true;
                 for (File file : db.getFiles()) {
-
+                    model.transferFile(file, clientsTable.getSelectionModel().getSelectedItem());
                 }
             }
             event.setDropCompleted(success);

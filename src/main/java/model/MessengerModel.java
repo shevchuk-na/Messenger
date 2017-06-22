@@ -7,6 +7,7 @@ import model.net.Client;
 import model.net.Connection;
 import model.service.NetworkDiscovererService;
 
+import java.io.File;
 import java.net.InetAddress;
 
 public class MessengerModel {
@@ -82,5 +83,9 @@ public class MessengerModel {
 
     public void shutdown() {
         currentModel.shutdown();
+    }
+
+    public void transferFile(File file, Client client) {
+        currentModel.sendFile(file, client);
     }
 }

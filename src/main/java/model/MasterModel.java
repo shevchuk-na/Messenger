@@ -3,19 +3,14 @@ package model;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
-import model.data.DataPacket;
-import model.data.Message;
-import model.data.ModuleNames;
-import model.data.WelcomeInfo;
+import model.data.*;
 import model.net.Client;
 import model.net.Connection;
-import model.service.IncomingPacketService;
-import model.service.MasterRouterService;
-import model.service.MasterTCPConnectionService;
-import model.service.MasterUDPService;
+import model.service.*;
 import model.utils.JsonUtil;
 import model.utils.SettingsUtil;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.Date;
@@ -67,11 +62,11 @@ public class MasterModel implements Model {
     @Override
     public void sendMessage(String text, Client receiver) {
         DataPacket message;
-        if(receiver == null) {
+        if (receiver == null) {
             message = new DataPacket(model.getLocalConnection().getIp(), null, ModuleNames.Message, text);
             masterRouterService.addPacketToSend(message);
             model.getMessages().add(new Message(SettingsUtil.getInstance().getName(), null, text));
-        } else if(!receiver.getIp().equals(model.getLocalConnection().getIp())){
+        } else if (!receiver.getIp().equals(model.getLocalConnection().getIp())) {
             message = new DataPacket(model.getLocalConnection().getIp(), receiver.getIp(), ModuleNames.Message, text);
             masterRouterService.addPacketToSend(message);
             model.getMessages().add(new Message(SettingsUtil.getInstance().getName(), receiver.getName(), text));
@@ -82,7 +77,7 @@ public class MasterModel implements Model {
     }
 
     @Override
-    public void sendPacket(DataPacket packet, Connection connection) {
+    public void sendPacket(DataPacket packet) {
         masterRouterService.addPacketToSend(packet);
     }
 
@@ -95,18 +90,37 @@ public class MasterModel implements Model {
                 updateClientLists();
                 break;
             case Message:
-                if(packet.getReceiver() == null){
-                    sendPacket(packet, sender);
+                if (packet.getReceiver() == null) {
+                    sendPacket(packet);
                     model.getMessages().add(new Message(model.findNameByIp(packet.getSender()), model.findNameByIp(packet.getReceiver()), packet.getPayload()));
-                } else if(packet.getReceiver().equals(model.getLocalConnection().getIp())){
+                } else if (packet.getReceiver().equals(model.getLocalConnection().getIp())) {
                     model.getMessages().add(new Message(model.findNameByIp(packet.getSender()), model.findNameByIp(packet.getReceiver()), packet.getPayload()));
                 } else {
-                    sendPacket(packet, sender);
+                    sendPacket(packet);
                 }
                 break;
             case Update:
                 updateName(sender.getIp(), packet.getPayload());
+                break;
+            case File:
+                FileInfo fileInfo = JsonUtil.getInstance().jsonToFileInfo(packet.getPayload());
+                if (packet.getReceiver() == null) {
+                    receiveFile(fileInfo, packet.getSender());
+                    sendFile(new File("transferredFiles/" + fileInfo.getFilename()), null);
+                } else if (packet.getReceiver().equals(model.getLocalConnection().getIp())) {
+                    receiveFile(fileInfo, packet.getSender());
+                } else {
+                    sendPacket(packet);
+                }
         }
+    }
+
+    private void receiveFile(FileInfo fileInfo, InetAddress sender) {
+        FileTransferService fileTransferService = new FileTransferService(this, fileInfo, sender);
+        Thread fileTransferServiceThread = new Thread(fileTransferService);
+        fileTransferServiceThread.setName("File transfer service thread");
+        fileTransferServiceThread.setDaemon(true);
+        fileTransferServiceThread.start();
     }
 
     public void createIncomingService(Connection connection) {
@@ -119,9 +133,9 @@ public class MasterModel implements Model {
     }
 
     private void updateName(InetAddress ip, String senderName) {
-        for(int i = 0; i < model.getClients().size(); i++){
+        for (int i = 0; i < model.getClients().size(); i++) {
             Client client = model.getClients().get(i);
-            if(client.getIp().equals(ip) && !client.getName().equals(senderName)){
+            if (client.getIp().equals(ip) && !client.getName().equals(senderName)) {
                 model.getClients().set(i, new Client(client.getIp(), client.getPort(), senderName, client.getCreatingDate()));
                 updateClientLists();
                 break;
@@ -155,11 +169,11 @@ public class MasterModel implements Model {
     }
 
     public Connection findConnectionByIp(InetAddress receiver) {
-        if(receiver.equals(model.getLocalConnection().getIp())){
+        if (receiver.equals(model.getLocalConnection().getIp())) {
             return model.getLocalConnection();
         }
-        for(Connection connection : connections){
-            if(connection.getIp().equals(receiver)){
+        for (Connection connection : connections) {
+            if (connection.getIp().equals(receiver)) {
                 return connection;
             }
         }
@@ -195,5 +209,33 @@ public class MasterModel implements Model {
         masterRouterService.setAlive(false);
         masterTCPConnectionService.setAlive(false);
         masterTCPConnectionService.closeServerSocket();
+    }
+
+    @Override
+    public void sendFile(File file, Client receiver) {
+        if (receiver != null) {
+            if (!receiver.getIp().equals(model.getLocalConnection().getIp())) {
+                createFileTransferServiceThread(file, receiver.getIp());
+            } else {
+                model.getMessages().add(new Message(SettingsUtil.getInstance().getName(), receiver.getName(), "Can't send to self"));
+            }
+        } else {
+            for (Connection connection : getConnections()) {
+                createFileTransferServiceThread(file, connection.getIp());
+            }
+        }
+    }
+
+    private void createFileTransferServiceThread(File file, InetAddress receiver) {
+        FileTransferService fileTransferService = new FileTransferService(this, file, receiver);
+        Thread fileTransferServiceThread = new Thread(fileTransferService);
+        fileTransferServiceThread.setName("File transfer service thread");
+        fileTransferServiceThread.setDaemon(true);
+        fileTransferServiceThread.start();
+    }
+
+    @Override
+    public MessengerModel getModel() {
+        return model;
     }
 }

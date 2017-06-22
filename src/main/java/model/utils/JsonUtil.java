@@ -3,10 +3,10 @@ package model.utils;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import model.data.DataPacket;
+import model.data.FileInfo;
 import model.data.WelcomeInfo;
 import model.net.Client;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class JsonUtil {
@@ -16,6 +16,10 @@ public class JsonUtil {
 
     private JsonUtil() {
 
+    }
+
+    public static JsonUtil getInstance() {
+        return instance;
     }
 
     public String dataPacketToJson(DataPacket packet){
@@ -34,15 +38,19 @@ public class JsonUtil {
         return gson.fromJson(json, new TypeToken<List<Client>>(){}.getType());
     }
 
-    public static JsonUtil getInstance(){
-        return instance;
-    }
-
     public WelcomeInfo jsonToWelcomeInfo(String json){
         return gson.fromJson(json, WelcomeInfo.class);
     }
 
     public String welcomeInfoToJson(WelcomeInfo info){
         return gson.toJson(info);
+    }
+
+    public FileInfo jsonToFileInfo(String json) {
+        return gson.fromJson(json, FileInfo.class);
+    }
+
+    public String fileInfoToJson(FileInfo fileInfo) {
+        return gson.toJson(fileInfo);
     }
 }

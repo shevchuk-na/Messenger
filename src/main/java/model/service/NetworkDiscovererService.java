@@ -29,9 +29,11 @@ public class NetworkDiscovererService {
             udpServiceThread.setName("UDP service thread");
             udpServiceThread.setDaemon(true);
             udpServiceThread.start();
-            socket.send(broadcastPacket);
+            for (int i = 0; i < 5; i++) {
+                socket.send(broadcastPacket);
+            }
             try {
-                Thread.sleep(500);
+                Thread.sleep(2000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
